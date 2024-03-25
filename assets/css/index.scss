@@ -1,0 +1,15 @@
+@mixin border($weight: 1px, $color: black) {
+  border: $weight solid $color;
+  @content;
+}
+*{
+  box-sizing: border-box;
+}
+body{
+  overflow: hidden;
+}
+
+#board_game {
+  @include border();
+  background-color: white;
+}
