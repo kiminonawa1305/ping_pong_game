@@ -1,12 +1,23 @@
+/*
+* Name: Nguyễn Đình Lam
+* ID student: 21130416
+* Class: DH21DTC
+* Phone number: 0855354919
+*/
+$background-color: #03d7fc;
+
 @mixin border($weight: 1px, $color: black) {
   border: $weight solid $color;
   @content;
 }
-*{
+
+* {
   box-sizing: border-box;
 }
-body{
+
+body {
   overflow: hidden;
+  background-color: $background-color;
 }
 
 #board_game {
