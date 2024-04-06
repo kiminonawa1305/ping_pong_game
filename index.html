@@ -14,24 +14,94 @@
     <link rel="stylesheet" href="assets/css/index.css">
 
     <script type="text/javascript" src="assets/js/jquery-3.7.1.min.js"></script>
+    <script src="https://kit.fontawesome.com/98bcf6ee9c.js" crossorigin="anonymous"></script>
 </head>
 <body>
-
+<nav class="main-menu">
+    <ul class="menu">
+        <li class="menu-item button new-game">
+            <div class="title"><span>New Game</span></div>
+        </li>
+        <li class="menu-item drop-down">
+            <div class="button">
+                <div class="title">
+                    <span>Play With Levels</span>
+                    <i class="icon fa-solid fa-chevron-down"></i>
+                </div>
+            </div>
+            <ul>
+                <li class="menu-item choose-level" value="1">Level 1</li>
+                <li class="menu-item choose-level" value="2">Level 2</li>
+                <li class="menu-item choose-level" value="3">Level 3</li>
+                <li class="menu-item choose-level" value="4">Level 4</li>
+                <li class="menu-item choose-level" value="5">Level 5</li>
+            </ul>
+        </li>
+        <li class="menu-item button continue-game">
+            <div class="title"><span>Continue Game</span></div>
+        </li>
+        <li class="menu-item button introduce-game">
+            <div class="title"><span>Introduce</span></div>
+        </li>
+    </ul>
+</nav>
 <main class="container">
-    <div class="menu">
-        <ul>
-            <li>New Game</li>
-            <li>Continue Game</li>
-            <li>Introduce</li>
-        </ul>
+    <div id="board_game">
+        <canvas id="canvas"></canvas>
     </div>
-    <!--<canvas id="board_game"></canvas>-->
+    <nav class="right-menu">
+        <div class="display-score">
+            <span class="score">0</span>
+        </div>
+
+        <ul class="menu">
+            <li class="menu-item button next-game">
+                <div class="title"><span>Next Level</span></div>
+            </li>
+            <li class="menu-item button pause-game">
+                <div class="title"><span>Pause Game</span></div>
+            </li>
+            <li class="menu-item button quit-game">
+                <div class="title"><span>Quit Game</span></div>
+            </li>
+        </ul>
+    </nav>
 </main>
 
 
-<!--<audio id="sound_effect_collide">-->
-<!--    <source src="assets/sound_effect/sound_effect.mp3" type="audio/mpeg">-->
-<!--</audio>-->
+<section id="introduce">
+    <div class="container">
+        <h1 class="title">Game Bing Bong</h1>
+        <div class="introduce">
+            <h3>Giới thiệu game</h3>
+            <p>Game bing bong là một tựa game phá gạch đã được ra mắt và đã được nhiều người biết đến</p>
+            <p>Tựa game có lỗi chơi khá đơn giản và rất thích hợp để mọi người có thể chơi giải trí vào những lúc rảnh
+                rỗi</p>
+        </div>
+        <div class="instruct">
+            <h3>Hướng dẫn</h3>
+            <p><strong>B1: </strong>Tạo màng trò chơi bằng cách nhấn vào biểu nút "New Game" hoặc chọn level "Play With Levels" theo ý bạn
+                muốn.</p>
+            <p><strong>B2: </strong>Nhấn vào màng hình trò chơi để bắt đầu trò chơi.</p>
+            <p><strong>B3: </strong>Sau khi count down kết túc thì nhấn giữ và duy chuyển chuột qua lại để điều khiển
+                thanh "bar" hứng banh và phá hủy hết các viên gạch.</p>
+        </div>
+        <div class="info-author">
+            <h3>Thông tin người phát hành</h3>
+            <p class="info-author-id"><strong>MSSV: </strong>21130416</p>
+            <p class="info-author-name"><strong>Tên tác giả: </strong>Nguyễn Đình Lam</p>
+            <p class="info-author-class"><strong>Lớp: </strong>DH21DTC</p>
+            <p class="info-author-gmail"><strong>Email: </strong>kiminonawa1305@gmail.com</p>
+            <p class="info-author-version"><strong>Phiên bản: </strong>v1.0.0</p>
+            <p class="info-author-release-date-game"><strong>Thời gian phát hành: </strong>13/05/2024</p>
+        </div>
+    </div>
+
+</section>
+
+<audio id="sound_effect_collide">
+    <source src="assets/sound_effect/sound_effect.mp3" type="audio/mpeg">
+</audio>
 <script src="assets/js/index.js"></script>
 </body>
 </html>

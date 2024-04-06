@@ -5,43 +5,157 @@
 * Phone number: 0855354919
 */
 
-const screenWidth = /*(window.innerWidth - 18)*/ 500;
+const screenWidth = /*(window.innerWidth - 18)*/ 750;
 const screenHeight = window.innerHeight - 18;
 
 const soundEffectCollide = $('#sound_effect_collide')[0];
 
-const canvas = $("#board_game");
-canvas.attr("width", screenWidth);
-canvas.attr("height", screenHeight);
-
-const contentCanvas = canvas[0].getContext("2d");
+let canvas;
+let contentCanvas;
 
 const speed = 10;
 
-const barWidth = 200, barHeight = 10, spaseBarCompareToScreen = 50,
+const barWidth = 150, barHeight = 10, spaseBarCompareToScreen = 50,
     barX = screenWidth / 2 - barWidth / 2,
     barY = screenHeight - barHeight - spaseBarCompareToScreen, ballSize = 10;
 
-let ballX = barX + barWidth / 2, ballY = barY - ballSize;
+const ballX = barX + barWidth / 2, ballY = barY;
 
 let isMoveBar = false;
 let start = true;
 let level = 1;
 let run;
-let listBall;
-let listObstacle;
+let listBall = [];
+let listObstacle = [];
+let listItem = [];
 const colors = ["#e11919", "#0b4689", "#000", "#036a0c", "#ab02b5", "#5b014a"];
 let bar;
+let score = 0;
+let pause = false;
+const rows = 5;
+let REWARD
 $(document).ready(() => {
-    newGame();
+    const buttonContinueGame = $('.continue-game')
+    $('.new-game').on("click", function () {
+        clearDataGame();
+        level = 1
+        score = 0;
+        setScore(score)
+        newGame();
+        $(".main-menu").css({'transform': 'translateX(100%)'});
+        $("main").css({'transform': 'translateX(0%)'});
+        setTimeout(() => {
+            $(".right-menu").css({'transform': 'translateX(0%)'});
+        }, 500)
+    })
+
+    $(".quit-game").on("click", function () {
+        pause = true;
+        run = false;
+        if (confirm("Bạn có chắc muốn thoát game không!")) {
+            quitGame();
+            saveDataGame()
+            buttonContinueGame.show()
+        } else if (!start) {
+            setUpFrameCountDown();
+            countDown();
+        }
+    })
+
+    $(".pause-game").on("click", function () {
+        pause = true;
+        run = false;
+        alert("Tiếp tục trò chơi")
+        setUpFrameCountDown();
+        countDown();
+    })
+
+    $('.choose-level').on("click", function (event) {
+        level = parseInt($(this).val())
+        score = 0;
+        setScore(score)
+        newGame();
+        clearDataGame();
+        buttonContinueGame.hide()
+        $(".main-menu").css({'transform': 'translateX(100%)'});
+        $("main").css({'transform': 'translateX(0%)'});
+        $(".right-menu").css({'transform': 'translateX(0%)'});
+    });
+
+    $(".next-game").on("click", function (event) {
+        if (level <= 6) {
+            level++
+            newGame();
+            clearDataGame();
+            buttonContinueGame.hide()
+            $(".main-menu").css({'transform': 'translateX(100%)'});
+            $("main").css({'transform': 'translateX(0%)'});
+            $(".right-menu").css({'transform': 'translateX(0%)'});
+        }
+    })
+
+    $('.introduce-game').on('click', function (event) {
+        $("#introduce").css({"transition": "30s linear", "transform": "translateY(-200%)"})
+        setTimeout(() => {
+            $("#introduce").css({"transition": "0ms linear", "transform": "translateY(0%)"})
+        }, 30 * 1000)
+    });
+
+    REWARD = [new RewardX2(), new RewardIncrease5(), new RewardDecrease5(), new RewardDivide2()];
+
+    if (!localStorage.getItem("bar")) buttonContinueGame.hide()
+
+    buttonContinueGame.on("click", function (event) {
+        loadDataGame()
+        clearDataGame()
+        continueGame()
+    })
+});
+
+
+$(document).on("keydown", function (event) {
+    switch (event.keyCode) {
+        case 27: {
+            if (!pause && !start) {
+                pause = true;
+                if (confirm("Bạn có muốn tiếp tục trò chơi không\nNhấn \"OK\" để tiếp tục trò chơi")) {
+                    setUpFrameCountDown();
+                    countDown();
+                } else
+                    quitGame();
+            }
+            break;
+        }
+    }
+});
+
+$("body").on("click", function (event) {
+    if ($(event.target).parents('.introduce-game')[0] !== $(".introduce-game")[0])
+        $("#introduce").css({"transition": "0ms linear", "transform": "translateY(0%)"})
+});
+
+
+const createBroadGame = () => {
+    $("#board_game").html(`<canvas id="canvas"></canvas>`)
+    canvas = $("#canvas");
+
+    canvas.attr("width", screenWidth);
+    canvas.attr("height", screenHeight);
+
+    contentCanvas = canvas[0].getContext("2d");
 
     /*event move bar and start game*/
     canvas.mousedown(event => {
         isMoveBar = true;
         if (start) {
-            run = true;
             start = false;
-            playGame();
+            setUpFrameCountDown();
+            countDown();
+        }
+
+        if (pause) {
+            pause = false;
+            countDown();
         }
     });
 
@@ -49,34 +163,77 @@ $(document).ready(() => {
         isMoveBar = false;
     });
 
-    canvas.mousemove(event => {
+    canvas.mousemove(function (event) {
+        const elementX = this.getBoundingClientRect().x;
         if (isMoveBar && run) {
-            moveBar(bar, event.clientX, screenWidth, contentCanvas);
+            moveBar(bar, event.clientX - elementX, screenWidth, contentCanvas);
         }
     });
+}
 
 
-});
+/*Chạy sụ kiện count down*/
+const countDown = () => {
+    const textCountDown = $(".text-count-down");
+    for (let second = 3; second > 0; second--) {
+        setTimeout(() => {
+            textCountDown.text(second)
+            textCountDown.css({'transform': 'translate(-50%, -50%) scale(1)'});
+        }, (3 - second) * 1000)
+        setTimeout(() => {
+            textCountDown.text(second)
+            textCountDown.css({'transform': 'translate(-50%, -50%) scale(0)'});
+        }, (3 - second) * 1000 + 500)
+    }
+
+    setTimeout(() => {
+        $("#count-down").remove();
+        pause = false;
+        run = true;
+        playGame();
+    }, 3000);
+}
+
+/*Khởi tạo lớp phú hiển thị việc count down*/
+const setUpFrameCountDown = () => {
+    const divDisplayCountDown = `
+        <div id="count-down">
+            <div class="background-hidden"></div>
+        
+             <div class="display-count-down">
+                    <span class="text-count-down" style="">3</span>
+             </div>
+        </div>
+    `;
+
+    $('body').append(divDisplayCountDown);
+}
+
+/*Tạo hiệu ứng đếm ngược trước khi bắt đầu chò chơi.*/
+const setScore = (score) => {
+    const scoreElement = $(".display-score .score");
+    scoreElement.css({'transform': 'scale(0)'})
+    setTimeout(() => {
+        scoreElement.text(score)
+        scoreElement.css({'transform': 'scale(1)'})
+    }, 250)
+}
+
 
 const newGame = () => {
-    contentCanvas.clearRect(0, 0, screenWidth, screenHeight);
+    run = false;
+    pause = false;
+    start = true;
+
+    createBroadGame();
 
     listBall = [];
     listObstacle = []
-
-    const barWidth = 200, barHeight = 10, spaseBarCompareToScreen = 50,
-        barX = screenWidth / 2 - barWidth / 2,
-        barY = screenHeight - barHeight - spaseBarCompareToScreen, ballSize = 10;
+    listItem = [];
     bar = new Rectangle(barX, barY, barWidth, barHeight);
-    for (let i = 0; i < 1; i++) {
-        const ball = new Circle(ballX, barY - ballSize, ballSize);
-        const rndPoint = randomAngle(speed, speed, speed);
-        const dx = Math.random() > 0.5 ? -rndPoint[0] : rndPoint[0],
-            dy = -rndPoint[1];
-        ball.setDxy(dx, dy);
-        ball.draw(contentCanvas);
-        listBall.push(ball);
-    }
+    const ball = new Circle(ballX, ballY - ballSize, ballSize);
+    ball.draw(contentCanvas);
+    listBall.push(ball);
 
     listObstacle.push(bar);
     bar.draw(contentCanvas);
@@ -89,9 +246,10 @@ const playGame = () => {
     for (const index in listBall) {
         if (listObstacle.length === 1) {
             if (confirm(`Chúc mừng bạn đã chiến thắng level ${level}\nNhấn "OK" để tiếp tục chơi level ${++level}`)) {
+                createBroadGame()
                 newGame();
-                start = true;
-            }
+            } else
+                quitGame()
             return;
         }
 
@@ -105,43 +263,125 @@ const playGame = () => {
                 ball.setColor(colors[Math.floor(Math.random() * colors.length)]);
 
             if (huong === TouchDirection.WEST || huong === TouchDirection.EAST) {
-                // getCollisionSound();
+                getCollisionSound();
                 const rdPoint = randomAngle(dx, dy, speed);
                 dx = rdPoint[0]
-                // dy = Math.random() > 0.5 ? -rdPoint[1] : rdPoint[1]
                 dy = rdPoint[1]
+                // dy = Math.random() > 0.5 ? -rdPoint[1] : rdPoint[1]
                 ball.setDxy(dx, dy);
             }
 
             if (huong === TouchDirection.SOUTH || huong === TouchDirection.NORTH) {
-                // getCollisionSound();
+                getCollisionSound();
                 const rdPoint = randomAngle(dy, dx, speed);
                 dy = rdPoint[0]
-                // dx = Math.random() > 0.5 ? -rdPoint[1] : rdPoint[1]
                 dx = rdPoint[1]
+                // dx = Math.random() > 0.5 ? -rdPoint[1] : rdPoint[1]
                 ball.setDxy(dx, dy);
             }
         }
 
         if (ball.y - ball.radius > screenHeight) removeElement(newListBall, index)
-        // ball.drawXY(ball.x + dx, ball.y + dy, contentCanvas);
     }
 
-    drawBall(listBall, contentCanvas);
+    drawElements(listBall, listItem, contentCanvas);
 
     listBall = newListBall;
     bar.draw(contentCanvas);
 
-
-    if (listBall.length !== 0)
+    if (!pause && run && listBall.length !== 0)
         requestAnimationFrame(playGame);
-    else if (confirm("Thua mât rồi!\nBạn có muốn chơi lại không?")) {
-        level = 1;
-        newGame();
-        start = true;
+
+    if (listBall.length === 0) {
+        if (confirm("Thua mất rồi!\nBạn có muốn chơi lại không?")) {
+            level = 1;
+            score = 0;
+            createBroadGame()
+            newGame();
+            setScore(score);
+        } else {
+            quitGame();
+        }
     }
 }
 
+const quitGame = () => {
+    start = true;
+    run = false;
+    pause = false;
+    $(".right-menu").css({'transform': 'translateX(-120%)'});
+    setTimeout(() => {
+        $("main").css({'transform': 'translateX(-110%)'});
+        $(".main-menu").css({'transform': 'translateX(0)'});
+    }, 500);
+}
+
+const continueGame = () => {
+    setScore(score)
+    $('.continue-game').hide()
+    createBroadGame()
+
+    listItem.map(item => {
+        item.draw(contentCanvas)
+    })
+
+    listBall.map(ball => {
+        ball.draw(contentCanvas)
+    })
+    listObstacle.map(obstacle => {
+        obstacle.draw(contentCanvas)
+    })
+
+    bar.draw(contentCanvas)
+
+    $(".main-menu").css({'transform': 'translateX(100%)'});
+    $("main").css({'transform': 'translateX(0%)'});
+    setTimeout(() => {
+        $(".right-menu").css({'transform': 'translateX(0%)'});
+    }, 500)
+}
+
+const clearDataGame = () => {
+    localStorage.removeItem("balls", listBall);
+    localStorage.removeItem("bar", bar);
+    localStorage.removeItem("items", listItem);
+    localStorage.removeItem("obstacle", listObstacle)
+    localStorage.removeItem("score", score)
+    $('.continue-game').hide()
+
+}
+const saveDataGame = () => {
+    localStorage.setItem("items", JSON.stringify(listItem));
+    localStorage.setItem("balls", JSON.stringify(listBall));
+    localStorage.setItem("obstacle", JSON.stringify(listObstacle))
+    localStorage.setItem("score", score)
+}
+
+const loadDataGame = () => {
+    listItem = JSON.parse(localStorage.getItem('items')).map(object => {
+        return new Item(object.x, object.y, object.width, object.height)
+    })
+    listBall = JSON.parse(localStorage.getItem('balls')).map(object => {
+        const ball = new Circle(object.x, object.y, object.radius);
+        ball.setDxy(object.dx, object.dy);
+        ball.setColor(object.color);
+        return ball;
+    })
+    listObstacle = JSON.parse(localStorage.getItem('obstacle')).map((object, index, array) => {
+        if (index === 0) {
+            const bar = new Rectangle(object.x, object.y, object.width, object.height);
+            bar.setColor(object.color)
+            return bar;
+        } else {
+            const obstacle = new Obstacle(object.x, object.y, object.width, object.height);
+            obstacle.setBlood(object.blood ? object.blood : undefined);
+            obstacle.setColor(object.color)
+            return obstacle;
+        }
+    })
+    score = parseInt(localStorage.getItem("score"))
+    bar = listObstacle[0];
+}
 
 /*Chạm hướng từ dưới lên*/
 function collideNorth(ball, collidePoint) {
@@ -197,18 +437,22 @@ function checkCollide(listBall, ball, listObstacle, screenWidth, screenHeight, l
         }
 
         if (listObstacle[index] instanceof Obstacle) {
-            if (isNaN(listObstacle[index].blood) || listObstacle[index].blood === 0) {
-                contentCanvas.clearRect(listObstacle[index].x, listObstacle[index].y, listObstacle[index].width, listObstacle[index].height);
-                listObstacle[index].setPoint(-100000, -100000);
-                listObstacle[index].width = 0;
-                listObstacle[index].height = 0;
-                listObstacle[index].draw(contentCanvas);
+            score += 10 * level;
+            setScore(score);
+            const obstacle = listObstacle[index];
+            if (level === 3) listObstacle[index].setBlood(obstacle.blood - 1)
+            if (isNaN(obstacle.blood) || obstacle.blood === 0) {
+                const item = obstacle.getItem();
+                if (item)
+                    listItem.push(item)
+                obstacle.drawXY(-100000, -100000, contentCanvas);
+                listObstacle = removeElement(listObstacle, index);
+                return result;
             }
 
-            if (listObstacle[index].blood > 0) {
-                listObstacle[index].drawBlood(contentCanvas);
+            if (obstacle.blood > 0) {
+                obstacle.drawBlood(contentCanvas);
             }
-            listObstacle = removeElement(listObstacle, index);
         }
 
 
@@ -286,7 +530,7 @@ function randomAngle(inverseNumber, affect, speed) {
     rdInverseNumber = rdInverseNumber === 0 ? 1 : rdInverseNumber > speed ? speed : rdInverseNumber;
 
     inverseNumber = inverseNumber > 0 ? -rdInverseNumber : rdInverseNumber;
-    affect = affect > 0 ? speed * 2 - rdInverseNumber : rdInverseNumber - speed * 2
+    affect = affect > 0 ? speed - rdInverseNumber : rdInverseNumber - speed
 
     return [inverseNumber, affect];
 }
@@ -308,7 +552,7 @@ function removeElement(list, index) {
     return list.splice(index, 1)
 }
 
-function drawBall(listBall, contentCanvas) {
+function drawElements(listBall, listItem, contentCanvas) {
     listBall.map(ball => {
         ball.clearDraw(contentCanvas)
     })
@@ -316,6 +560,17 @@ function drawBall(listBall, contentCanvas) {
     listBall.map(ball => {
         ball.drawXY(ball.x + ball.dx, ball.y + ball.dy, contentCanvas);
     })
+
+    let newListItem = listItem;
+    listItem.map((item, index) => {
+        item.drop(contentCanvas);
+        if (item.collide()) {
+            item.reward.action()
+            item.drawXY(-1000, -1000, contentCanvas);
+            newListItem = removeElement(newListItem, index)
+        } else if (item.width === 0 || item.y > screenHeight) newListItem = removeElement(newListItem, index)
+    });
+    listItem = newListItem;
 }
 
 /*Kểm tra chạm tường*/
@@ -329,12 +584,8 @@ function collideWall(ball, screenWidth, screenHeight) {
 
 /*Khởi tạo danh sách các viên gạch*/
 const createArrayObstacleWithRows = (listObs, rows) => {
-    let w = 50;
-    for (; w < 100; w++) {
-        if ((screenWidth - w * Math.floor(screenWidth / w)) <= 5) break;
-    }
-
-    const obstacleWidth = w, obstacleHeight = 30;
+    let w = 75;
+    const obstacleWidth = w, obstacleHeight = 40;
     const columns = Math.floor(screenWidth / obstacleWidth);
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < columns; col++) {
@@ -358,6 +609,10 @@ const drawObstacle = (listObs, contentCanvas) => {
 /*Khởi tạo class hình tròn*/
 class Circle {
     constructor(x, y, radius) {
+        const rndPoint = randomAngle(speed, speed, speed);
+        const dx = Math.random() > 0.5 ? -rndPoint[0] : rndPoint[0],
+            dy = -rndPoint[1];
+        this.setDxy(dx, dy);
         this.setPoint(x, y);
         this.radius = radius;
         this.setColor(undefined);
@@ -368,6 +623,7 @@ class Circle {
         contentCanvas.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         contentCanvas.fillStyle = this.color
         contentCanvas.fill();
+        contentCanvas.closePath();
     }
 
     drawXY(x, y, contentCanvas) {
@@ -377,7 +633,9 @@ class Circle {
     }
 
     clearDraw(contentCanvas) {
+        contentCanvas.beginPath();
         contentCanvas.clearRect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+        contentCanvas.closePath();
     }
 
     setColor(color) {
@@ -412,10 +670,11 @@ class Rectangle {
         contentCanvas.rect(this.x, this.y, this.width, this.height);
         contentCanvas.fillStyle = this.color
         contentCanvas.fill();
+        contentCanvas.closePath();
     }
 
     drawXY(x, y, contentCanvas) {
-        contentCanvas.clearRect(this.x, this.y, this.width, this.height);
+        contentCanvas.clearRect(this.x - 1, this.y, this.width + 2, this.height);
         this.setPoint(x, y);
         this.draw(contentCanvas);
     }
@@ -461,17 +720,18 @@ class Obstacle extends Rectangle {
 
     draw = (contentCanvas) => {
         super.draw(contentCanvas);
+        contentCanvas.beginPath();
+        contentCanvas.rect(this.x, this.y, this.width, this.height);
         contentCanvas.strokeStyle = "#fff";
         contentCanvas.stroke();
         this.drawBlood(contentCanvas);
+        contentCanvas.closePath();
     }
 
     drawXY = (x, y, contentCanvas) => {
         contentCanvas.clearRect(this.x, this.y, this.width, this.height);
-        super.drawXY(x, y, contentCanvas);
-        contentCanvas.strokeStyle = "#fff";
-        contentCanvas.stroke();
-        this.drawBlood(contentCanvas);
+        this.setPoint(x, y);
+        this.draw(contentCanvas);
     }
 
     drawBlood(contentCanvas) {
@@ -482,6 +742,146 @@ class Obstacle extends Rectangle {
             contentCanvas.fillStyle = "#000"
             contentCanvas.fillText(this.blood < 10 ? "0" + this.blood : this.blood, this.x + this.width / 2 - 6, this.y + this.height / 2 + 3);
         }
+    }
+
+    getItem() {
+        if (Math.random() <= 0.2)
+            return new Item(this.x, this.y, this.width, this.height);
+    }
+}
+
+/*Khởi tạo class vật phẩm*/
+class Item extends Rectangle {
+    constructor(x, y, width, height) {
+        super(x, y, width, height);
+        this.setColor("#fde440")
+        const indexReward = Math.floor(Math.random() * REWARD.length);
+        this.setReward(REWARD[indexReward])
+    }
+
+    setReward(reward) {
+        this.reward = reward;
+    }
+
+    draw = (contentCanvas) => {
+        super.draw(contentCanvas);
+        contentCanvas.beginPath();
+        contentCanvas.rect(this.x, this.y, this.width, this.height);
+        contentCanvas.strokeStyle = " #fff";
+        contentCanvas.stroke();
+        this.drawRewardName(contentCanvas);
+        contentCanvas.closePath();
+    }
+
+    drawXY = (x, y, contentCanvas) => {
+        contentCanvas.clearRect(this.x, this.y, this.width, this.height);
+        this.setPoint(x, y + 3);
+        this.draw(contentCanvas);
+    }
+
+    drop = (contentCanvas) => {
+        this.drawXY(this.x, this.y, contentCanvas)
+    }
+
+    drawRewardName(contentCanvas) {
+        const circle = new Circle(this.x + this.width / 2, this.y + this.height / 2, 10);
+        circle.setColor("#fff")
+        circle.draw(contentCanvas);
+        contentCanvas.fillStyle = "#000"
+        contentCanvas.fillText(this.reward.name, this.x + this.width / 2 - 6, this.y + this.height / 2 + 3);
+    }
+
+    collide() {
+        return this.y + this.height >= bar.y && this.y <= bar.y + bar.height && this.x + this.width >= bar.x && this.x <= bar.x + bar.width
+    }
+}
+
+class Reward {
+    constructor(name) {
+        this.name = name;
+    }
+
+    action() {
+    }
+}
+
+class RewardX2 extends Reward {
+    constructor() {
+        super("x2");
+    }
+
+    action() {
+        let ball;
+        const count = listBall.length * 2;
+        for (let i = 0; i < count; i++) {
+            ball = new Circle(ballX, ballY - ballSize, ballSize);
+            ball.draw(contentCanvas);
+            listBall.push(ball);
+        }
+    }
+}
+
+class RewardDivide2 extends Reward {
+    constructor() {
+        super("÷5");
+    }
+
+    action() {
+        if (listBall.length === 1) return;
+        let ball;
+        let count = parseInt(listBall.length / 2);
+        let newListBall = listBall;
+        for (let i = 0; i < count; i++) {
+            const index = Math.floor(Math.random() * newListBall.length);
+            ball = newListBall[index];
+            ball.clearDraw(contentCanvas)
+            ball.drawXY(1000, 1000, contentCanvas)
+            newListBall = removeElement(newListBall, index)
+            ball.clearDraw(contentCanvas)
+        }
+
+        listBall = newListBall
+    }
+}
+
+class RewardDecrease5 extends Reward {
+
+    constructor() {
+        super("-5");
+    }
+
+    action() {
+        if (listBall.length === 1) return;
+        let ball;
+        let count = Math.min(listBall.length, 5);
+        let newListBall = listBall;
+        for (let i = 0; i < count; i++) {
+            const index = Math.floor(Math.random() * newListBall.length);
+            ball = newListBall[index];
+            ball.clearDraw(contentCanvas)
+            ball.drawXY(1000, 1000, contentCanvas)
+            newListBall = removeElement(newListBall, index)
+            ball.clearDraw(contentCanvas)
+        }
+
+        listBall = newListBall
+    }
+}
+
+class RewardIncrease5 extends Reward {
+
+    constructor() {
+        super("+5");
+    }
+
+    action() {
+        let ball;
+        for (let i = 0; i < 5; i++) {
+            ball = new Circle(ballX, ballY - ballSize, ballSize);
+            ball.draw(contentCanvas);
+            listBall.push(ball);
+        }
+
     }
 }
 
@@ -497,7 +897,6 @@ const TouchDirection = {"EAST": 1, "WEST": 2, "SOUTH": 3, "NORTH": 4, "NONE": 0,
 
 /*Tạo sự kiện theo level*/
 const level1 = (listObstacle, contentCanvas) => {
-    const rows = 1;
     createArrayObstacleWithRows(listObstacle, rows);
     drawObstacle(listObstacle, contentCanvas);
 }
@@ -508,7 +907,7 @@ const level2 = (listObstacle, contentCanvas) => {
 }
 
 const level3 = (listObstacle, contentCanvas) => {
-    createArrayObstacleWithRows(listObstacle, 10)
+    createArrayObstacleWithRows(listObstacle, rows)
     listObstacle.map(obs => {
         if (obs instanceof Obstacle) {
             const blood = Math.floor(Math.random() * 5);
@@ -520,7 +919,7 @@ const level3 = (listObstacle, contentCanvas) => {
 }
 
 const level4 = (listObstacle, contentCanvas) => {
-    createArrayObstacleWithRows(listObstacle, 10)
+    createArrayObstacleWithRows(listObstacle, rows)
     listObstacle.map(obs => {
         if (obs instanceof Obstacle) {
             obs.setColor(colors[Math.floor(Math.random() * colors.length)])
@@ -531,7 +930,7 @@ const level4 = (listObstacle, contentCanvas) => {
 }
 
 const level5 = (listObstacle, contentCanvas) => {
-    createArrayObstacleWithRows(listObstacle, 10)
+    createArrayObstacleWithRows(listObstacle, rows)
     listObstacle.map(obs => {
         if (obs instanceof Obstacle) {
             obs.setColor(colors[Math.floor(Math.random() * colors.length)])
@@ -546,7 +945,7 @@ const level5 = (listObstacle, contentCanvas) => {
 /*Tọa sự kiện drop*/
 const dropObstacle = (listObstacle, contentCanvas) => {
     setInterval(() => {
-        if (run) {
+        if (run && !pause) {
             listObstacle.map(obs => {
                 if (obs instanceof Obstacle) {
                     contentCanvas.clearRect(obs.x, obs.y, obs.width, obs.height);
@@ -556,7 +955,7 @@ const dropObstacle = (listObstacle, contentCanvas) => {
 
             drawObstacle(listObstacle, contentCanvas);
         }
-    }, 10000);
+    }, 5000);
 }
 const drawObstacleByLevel = (level, listObs, contentCanvas) => {
     switch (level) {
