@@ -9,6 +9,7 @@ const screenWidth = /*(window.innerWidth - 18)*/ 750;
 const screenHeight = window.innerHeight - 18;
 
 const soundEffectCollide = $('#sound_effect_collide')[0];
+let soundEffectIntroduce;
 
 let canvas;
 let contentCanvas;
@@ -35,6 +36,7 @@ let pause = false;
 const rows = 5;
 let REWARD
 $(document).ready(() => {
+    soundEffectIntroduce = $("#sound_effect_introduce")[0];
     const buttonContinueGame = $('.continue-game')
     $('.new-game').on("click", function () {
         clearDataGame();
@@ -95,6 +97,7 @@ $(document).ready(() => {
     })
 
     $('.introduce-game').on('click', function (event) {
+        getSoundEffectIntroduce()
         $("#introduce").css({"transition": "30s linear", "transform": "translateY(-200%)"})
         setTimeout(() => {
             $("#introduce").css({"transition": "0ms linear", "transform": "translateY(0%)"})
@@ -112,7 +115,7 @@ $(document).ready(() => {
     })
 });
 
-
+/*Sự kiện của các nút*/
 $(document).on("keydown", function (event) {
     switch (event.keyCode) {
         case 27: {
@@ -129,12 +132,13 @@ $(document).on("keydown", function (event) {
     }
 });
 
+/*Sự kiện hủy chức năng của nut "Introduce"*/
 $("body").on("click", function (event) {
     if ($(event.target).parents('.introduce-game')[0] !== $(".introduce-game")[0])
         $("#introduce").css({"transition": "0ms linear", "transform": "translateY(0%)"})
 });
 
-
+/*Sự kiện tạo mới bảng game*/
 const createBroadGame = () => {
     $("#board_game").html(`<canvas id="canvas"></canvas>`)
     canvas = $("#canvas");
@@ -170,7 +174,6 @@ const createBroadGame = () => {
         }
     });
 }
-
 
 /*Chạy sụ kiện count down*/
 const countDown = () => {
@@ -219,7 +222,7 @@ const setScore = (score) => {
     }, 250)
 }
 
-
+/*Sự kiện tạo mới game*/
 const newGame = () => {
     run = false;
     pause = false;
@@ -241,6 +244,7 @@ const newGame = () => {
     drawObstacleByLevel(level, listObstacle, contentCanvas);
 }
 
+/*Sự kiện khi game được chạy*/
 const playGame = () => {
     let newListBall = listBall;
     for (const index in listBall) {
@@ -305,6 +309,7 @@ const playGame = () => {
     }
 }
 
+/*Sự kiện cho nút "Quit Game"*/
 const quitGame = () => {
     start = true;
     run = false;
@@ -316,6 +321,7 @@ const quitGame = () => {
     }, 500);
 }
 
+/*Sự kiện cho nút  "Continute Game"*/
 const continueGame = () => {
     setScore(score)
     $('.continue-game').hide()
@@ -341,6 +347,7 @@ const continueGame = () => {
     }, 500)
 }
 
+/*Xóa dữ liệu trong local*/
 const clearDataGame = () => {
     localStorage.removeItem("balls", listBall);
     localStorage.removeItem("bar", bar);
@@ -350,6 +357,8 @@ const clearDataGame = () => {
     $('.continue-game').hide()
 
 }
+
+/*Lưu dữ liệu xuống local*/
 const saveDataGame = () => {
     localStorage.setItem("items", JSON.stringify(listItem));
     localStorage.setItem("balls", JSON.stringify(listBall));
@@ -357,6 +366,7 @@ const saveDataGame = () => {
     localStorage.setItem("score", score)
 }
 
+/*tải dữ liệu từ local*/
 const loadDataGame = () => {
     listItem = JSON.parse(localStorage.getItem('items')).map(object => {
         return new Item(object.x, object.y, object.width, object.height)
@@ -548,10 +558,12 @@ const moveBar = (bar, clientX, screenWidth, contentCanvas) => {
     bar.drawXY(barX, barY, contentCanvas);
 }
 
+/*Khóa phần tử khỏi mảng*/
 function removeElement(list, index) {
     return list.splice(index, 1)
 }
 
+/*Vẽ lại các đối tượng đang duy chuyển*/
 function drawElements(listBall, listItem, contentCanvas) {
     listBall.map(ball => {
         ball.clearDraw(contentCanvas)
@@ -773,16 +785,13 @@ class Item extends Rectangle {
         contentCanvas.closePath();
     }
 
-    drawXY = (x, y, contentCanvas) => {
-        contentCanvas.clearRect(this.x, this.y, this.width, this.height);
-        this.setPoint(x, y + 3);
-        this.draw(contentCanvas);
-    }
 
+    /*Phần thưởng rớt xuống*/
     drop = (contentCanvas) => {
-        this.drawXY(this.x, this.y, contentCanvas)
+        this.drawXY(this.x, this.y + 3, contentCanvas)
     }
 
+    /* Vẽ tên phần thưởng */
     drawRewardName(contentCanvas) {
         const circle = new Circle(this.x + this.width / 2, this.y + this.height / 2, 10);
         circle.setColor("#fff")
@@ -791,11 +800,13 @@ class Item extends Rectangle {
         contentCanvas.fillText(this.reward.name, this.x + this.width / 2 - 6, this.y + this.height / 2 + 3);
     }
 
+    /*Kiểm tra va chạm */
     collide() {
         return this.y + this.height >= bar.y && this.y <= bar.y + bar.height && this.x + this.width >= bar.x && this.x <= bar.x + bar.width
     }
 }
 
+/*Lớp abstract của việc sử lý xự kiện*/
 class Reward {
     constructor(name) {
         this.name = name;
@@ -805,6 +816,7 @@ class Reward {
     }
 }
 
+/*Tạo lớp xử lý hành vi tăng gấp đôi*/
 class RewardX2 extends Reward {
     constructor() {
         super("x2");
@@ -821,6 +833,7 @@ class RewardX2 extends Reward {
     }
 }
 
+/*Tạo lớp xử lý hành vi giảm số bóng đi một nữa*/
 class RewardDivide2 extends Reward {
     constructor() {
         super("÷5");
@@ -844,6 +857,7 @@ class RewardDivide2 extends Reward {
     }
 }
 
+/*Tạo lớp xử lý hành vi giảm 5 quá bóng*/
 class RewardDecrease5 extends Reward {
 
     constructor() {
@@ -868,6 +882,7 @@ class RewardDecrease5 extends Reward {
     }
 }
 
+/*Tạo lớp xử lý hành vi tăng 5 quá bóng*/
 class RewardIncrease5 extends Reward {
 
     constructor() {
@@ -892,20 +907,29 @@ function getCollisionSound() {
     soundEffectCollide.play()
 }
 
+/*Tạo âm giới thiệu game*/
+function getSoundEffectIntroduce() {
+    soundEffectIntroduce.pause();
+    soundEffectIntroduce.currentTime = 0;
+    soundEffectIntroduce.play()
+}
+
 /*Tạo kết quả khi banh đụng tường*/
 const TouchDirection = {"EAST": 1, "WEST": 2, "SOUTH": 3, "NORTH": 4, "NONE": 0, "REMOVE": -1}
 
-/*Tạo sự kiện theo level*/
+/*Tạo sự kiện theo level 1*/
 const level1 = (listObstacle, contentCanvas) => {
     createArrayObstacleWithRows(listObstacle, rows);
     drawObstacle(listObstacle, contentCanvas);
 }
 
+/*Tạo dự kiện level 2*/
 const level2 = (listObstacle, contentCanvas) => {
     level1(listObstacle, contentCanvas);
     dropObstacle(listObstacle, contentCanvas);
 }
 
+/*Tạo dự kiện level 3*/
 const level3 = (listObstacle, contentCanvas) => {
     createArrayObstacleWithRows(listObstacle, rows)
     listObstacle.map(obs => {
@@ -918,6 +942,7 @@ const level3 = (listObstacle, contentCanvas) => {
     dropObstacle(listObstacle, contentCanvas);
 }
 
+/*Tạo dự kiện level 4*/
 const level4 = (listObstacle, contentCanvas) => {
     createArrayObstacleWithRows(listObstacle, rows)
     listObstacle.map(obs => {
@@ -929,6 +954,7 @@ const level4 = (listObstacle, contentCanvas) => {
     dropObstacle(listObstacle, contentCanvas);
 }
 
+/*Tạo dự kiện level 5*/
 const level5 = (listObstacle, contentCanvas) => {
     createArrayObstacleWithRows(listObstacle, rows)
     listObstacle.map(obs => {
