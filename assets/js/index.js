@@ -8,16 +8,15 @@
 const screenWidth = /*(window.innerWidth - 18)*/ 750;
 const screenHeight = window.innerHeight - 18;
 
-const soundEffectCollide = $('#sound_effect_collide')[0];
-let soundEffectIntroduce;
+let soundEffectCollide, soundEffectIntroduce, soundEffectOpenGame, soundEffectPlayGame, soundEffectEatItem,
+    soundEffectHover, soundEffectCLick, soundEffectWin, soundEffectLose;
 
 let canvas;
 let contentCanvas;
 
 const speed = 10;
 
-const barWidth = 150, barHeight = 10, spaseBarCompareToScreen = 50,
-    barX = screenWidth / 2 - barWidth / 2,
+const barWidth = 150, barHeight = 10, spaseBarCompareToScreen = 50, barX = screenWidth / 2 - barWidth / 2,
     barY = screenHeight - barHeight - spaseBarCompareToScreen, ballSize = 10;
 
 const ballX = barX + barWidth / 2, ballY = barY;
@@ -35,10 +34,15 @@ let score = 0;
 let pause = false;
 const rows = 5;
 let REWARD
+let displayIntroduce = false;
 $(document).ready(() => {
-    soundEffectIntroduce = $("#sound_effect_introduce")[0];
+    createSoundEffect();
     const buttonContinueGame = $('.continue-game')
+    REWARD = [new RewardX2(), new RewardIncrease5(), new RewardDecrease5(), new RewardDivide2()];
+
+
     $('.new-game').on("click", function () {
+        makeSoundEffectBackground(soundEffectOpenGame, soundEffectPlayGame)
         clearDataGame();
         level = 1
         score = 0;
@@ -58,6 +62,7 @@ $(document).ready(() => {
             quitGame();
             saveDataGame()
             buttonContinueGame.show()
+            makeSoundEffectBackground(soundEffectPlayGame, soundEffectOpenGame)
         } else if (!start) {
             setUpFrameCountDown();
             countDown();
@@ -82,6 +87,7 @@ $(document).ready(() => {
         $(".main-menu").css({'transform': 'translateX(100%)'});
         $("main").css({'transform': 'translateX(0%)'});
         $(".right-menu").css({'transform': 'translateX(0%)'});
+        makeSoundEffectBackground(soundEffectOpenGame, soundEffectPlayGame)
     });
 
     $(".next-game").on("click", function (event) {
@@ -97,21 +103,46 @@ $(document).ready(() => {
     })
 
     $('.introduce-game').on('click', function (event) {
-        getSoundEffectIntroduce()
+        makeSoundEffectBackground(soundEffectOpenGame, soundEffectIntroduce)
         $("#introduce").css({"transition": "30s linear", "transform": "translateY(-200%)"})
+        displayIntroduce = true;
         setTimeout(() => {
             $("#introduce").css({"transition": "0ms linear", "transform": "translateY(0%)"})
+            makeSoundEffectBackground(soundEffectIntroduce, soundEffectOpenGame)
+            displayIntroduce = false;
         }, 30 * 1000)
     });
 
-    REWARD = [new RewardX2(), new RewardIncrease5(), new RewardDecrease5(), new RewardDivide2()];
 
     if (!localStorage.getItem("bar")) buttonContinueGame.hide()
-
     buttonContinueGame.on("click", function (event) {
         loadDataGame()
         clearDataGame()
         continueGame()
+        makeSoundEffectBackground(soundEffectOpenGame, soundEffectPlayGame)
+    })
+
+    soundEffectOpenGame.addEventListener("canplay", () => {
+        soundEffectOpenGame.play()
+    })
+
+
+    const button = $('.button');
+    const menuItem = $(".menu-item")
+    button.on("mouseover", function (event) {
+        makeSoundEffectCanReplace(soundEffectHover)
+    })
+
+    button.on("mousedown", function (event) {
+        makeSoundEffectCanReplace(soundEffectCLick)
+    })
+
+    menuItem.on("mouseover", function (event) {
+        makeSoundEffectCanReplace(soundEffectHover)
+    })
+
+    menuItem.on("mousedown", function (event) {
+        makeSoundEffectCanReplace(soundEffectCLick)
     })
 });
 
@@ -124,8 +155,10 @@ $(document).on("keydown", function (event) {
                 if (confirm("Bạn có muốn tiếp tục trò chơi không\nNhấn \"OK\" để tiếp tục trò chơi")) {
                     setUpFrameCountDown();
                     countDown();
-                } else
+                } else {
                     quitGame();
+                    makeSoundEffectBackground(soundEffectPlayGame, soundEffectOpenGame)
+                }
             }
             break;
         }
@@ -134,9 +167,42 @@ $(document).on("keydown", function (event) {
 
 /*Sự kiện hủy chức năng của nut "Introduce"*/
 $("body").on("click", function (event) {
-    if ($(event.target).parents('.introduce-game')[0] !== $(".introduce-game")[0])
+    if (displayIntroduce && $(event.target).parents(".introduce-game")[0] !== $('.introduce-game')[0]) {
         $("#introduce").css({"transition": "0ms linear", "transform": "translateY(0%)"})
+        displayIntroduce = false;
+        soundEffectIntroduce.pause();
+        makeSoundEffectBackground(soundEffectIntroduce, soundEffectOpenGame)
+    }
 });
+
+const createSoundEffect = () => {
+    soundEffectCollide = $('#sound_effect_collide')[0];
+    soundEffectIntroduce = $("#sound_effect_introduce")[0];
+    soundEffectPlayGame = $("#sound_effect_play_game")[0];
+    soundEffectOpenGame = $("#sound_effect_open_game")[0];
+    soundEffectEatItem = $("#sound_effect_eat_item")[0];
+    soundEffectCLick = $("#sound_effect_click")[0];
+    soundEffectHover = $("#sound_effect_hover")[0];
+    soundEffectWin = $("#sound_effect_win_game")[0];
+    soundEffectLose = $("#sound_effect_lose_game")[0];
+}
+
+/*Tạo âm thanh nèn cho trò chơi lúc mới mở game*/
+function makeSoundEffectBackground(soundCurrent, soundWillMake) {
+    soundCurrent.pause()
+    soundWillMake.currentTime = 0;
+    soundWillMake.play()
+
+}
+
+const makeSoundEffectCanReplace = (sound) => {
+    sound.pause();
+    sound.currentTime = 0;
+    sound.addEventListener('canplay', function () {
+        sound.play()
+    })
+}
+
 
 /*Sự kiện tạo mới bảng game*/
 const createBroadGame = () => {
@@ -249,11 +315,14 @@ const playGame = () => {
     let newListBall = listBall;
     for (const index in listBall) {
         if (listObstacle.length === 1) {
+            makeSoundEffectCanReplace(soundEffectWin)
             if (confirm(`Chúc mừng bạn đã chiến thắng level ${level}\nNhấn "OK" để tiếp tục chơi level ${++level}`)) {
                 createBroadGame()
                 newGame();
-            } else
+            } else {
                 quitGame()
+                makeSoundEffectBackground(soundEffectPlayGame, soundEffectOpenGame)
+            }
             return;
         }
 
@@ -263,11 +332,10 @@ const playGame = () => {
         let dy = ball.dy;
         /*Xử lý va chạm tường*/
         while ((huong = checkCollide(listBall, ball, listObstacle, screenWidth, screenHeight, level)) !== TouchDirection.NONE) {
-            if (level === 4)
-                ball.setColor(colors[Math.floor(Math.random() * colors.length)]);
+            if (level === 4) ball.setColor(colors[Math.floor(Math.random() * colors.length)]);
 
             if (huong === TouchDirection.WEST || huong === TouchDirection.EAST) {
-                getCollisionSound();
+                makeSoundEffectCanReplace(soundEffectCollide);
                 const rdPoint = randomAngle(dx, dy, speed);
                 dx = rdPoint[0]
                 dy = rdPoint[1]
@@ -276,7 +344,7 @@ const playGame = () => {
             }
 
             if (huong === TouchDirection.SOUTH || huong === TouchDirection.NORTH) {
-                getCollisionSound();
+                makeSoundEffectCanReplace(soundEffectCollide);
                 const rdPoint = randomAngle(dy, dx, speed);
                 dy = rdPoint[0]
                 dx = rdPoint[1]
@@ -293,10 +361,10 @@ const playGame = () => {
     listBall = newListBall;
     bar.draw(contentCanvas);
 
-    if (!pause && run && listBall.length !== 0)
-        requestAnimationFrame(playGame);
+    if (!pause && run && listBall.length !== 0) requestAnimationFrame(playGame);
 
     if (listBall.length === 0) {
+        makeSoundEffectCanReplace(soundEffectLose)
         if (confirm("Thua mất rồi!\nBạn có muốn chơi lại không?")) {
             level = 1;
             score = 0;
@@ -438,8 +506,7 @@ function checkCollide(listBall, ball, listObstacle, screenWidth, screenHeight, l
     for (let index = 0; index < listObstacle.length; index++) {
         result = listObstacle[index].collide(ball, dx, dy);
 
-        if (result === TouchDirection.NONE)
-            continue;
+        if (result === TouchDirection.NONE) continue;
 
         if (level >= 4 && listObstacle[index].color !== ball.color) {
             ball.setColor(colors[Math.floor(Math.random() * colors.length)]);
@@ -453,8 +520,7 @@ function checkCollide(listBall, ball, listObstacle, screenWidth, screenHeight, l
             if (level === 3) listObstacle[index].setBlood(obstacle.blood - 1)
             if (isNaN(obstacle.blood) || obstacle.blood === 0) {
                 const item = obstacle.getItem();
-                if (item)
-                    listItem.push(item)
+                if (item) listItem.push(item)
                 obstacle.drawXY(-100000, -100000, contentCanvas);
                 listObstacle = removeElement(listObstacle, index);
                 return result;
@@ -496,8 +562,7 @@ function distanceCollideEast(ball, collidePoint) {
 function collideSouthObstacle(ball, bar) {
     const dy = ball.dy;
     const collidePoint = bar.y;
-    if ((ball.x + ball.radius) >= (bar.x - ball.radius) && (ball.x - ball.radius) <= (bar.x + bar.width + ball.radius))
-        return collideSouth(ball, collidePoint, dy);
+    if ((ball.x + ball.radius) >= (bar.x - ball.radius) && (ball.x - ball.radius) <= (bar.x + bar.width + ball.radius)) return collideSouth(ball, collidePoint, dy);
     return false
 }
 
@@ -505,8 +570,7 @@ function collideSouthObstacle(ball, bar) {
 function collideNorthObstacle(ball, bar) {
     const dy = ball.dy;
     const collidePoint = bar.y + bar.height;
-    if ((ball.x + ball.radius) >= (bar.x - ball.radius) && (ball.x - ball.radius) <= (bar.x + bar.width + ball.radius))
-        return collideNorth(ball, collidePoint, dy);
+    if ((ball.x + ball.radius) >= (bar.x - ball.radius) && (ball.x - ball.radius) <= (bar.x + bar.width + ball.radius)) return collideNorth(ball, collidePoint, dy);
     return false;
 }
 
@@ -515,8 +579,7 @@ function collideWestObstacle(ball, bar) {
     const dx = ball.dx;
     const collidePoint = bar.x + bar.width;
 
-    if ((ball.y + ball.radius) >= (bar.y - ball.radius) && (ball.y - ball.radius) <= (bar.y + bar.height + ball.radius))
-        return collideWest(ball, collidePoint, dx);
+    if ((ball.y + ball.radius) >= (bar.y - ball.radius) && (ball.y - ball.radius) <= (bar.y + bar.height + ball.radius)) return collideWest(ball, collidePoint, dx);
     return false
 }
 
@@ -525,8 +588,7 @@ function collideEastObstacle(ball, bar) {
     const dx = ball.dx;
     const collidePoint = bar.x;
 
-    if ((ball.y + ball.radius) >= (bar.y - ball.radius) && (ball.y - ball.radius) <= (bar.y + bar.height + ball.radius))
-        return collideEast(ball, collidePoint, dx);
+    if ((ball.y + ball.radius) >= (bar.y - ball.radius) && (ball.y - ball.radius) <= (bar.y + bar.height + ball.radius)) return collideEast(ball, collidePoint, dx);
     return false
 }
 
@@ -577,6 +639,7 @@ function drawElements(listBall, listItem, contentCanvas) {
     listItem.map((item, index) => {
         item.drop(contentCanvas);
         if (item.collide()) {
+            makeSoundEffectCanReplace(soundEffectEatItem);
             item.reward.action()
             item.drawXY(-1000, -1000, contentCanvas);
             newListItem = removeElement(newListItem, index)
@@ -622,8 +685,7 @@ const drawObstacle = (listObs, contentCanvas) => {
 class Circle {
     constructor(x, y, radius) {
         const rndPoint = randomAngle(speed, speed, speed);
-        const dx = Math.random() > 0.5 ? -rndPoint[0] : rndPoint[0],
-            dy = -rndPoint[1];
+        const dx = Math.random() > 0.5 ? -rndPoint[0] : rndPoint[0], dy = -rndPoint[1];
         this.setDxy(dx, dy);
         this.setPoint(x, y);
         this.radius = radius;
@@ -757,8 +819,7 @@ class Obstacle extends Rectangle {
     }
 
     getItem() {
-        if (Math.random() <= 0.2)
-            return new Item(this.x, this.y, this.width, this.height);
+        if (Math.random() <= 0.2) return new Item(this.x, this.y, this.width, this.height);
     }
 }
 
@@ -898,20 +959,6 @@ class RewardIncrease5 extends Reward {
         }
 
     }
-}
-
-/*Tạo âm thanh va chạm*/
-function getCollisionSound() {
-    soundEffectCollide.pause();
-    soundEffectCollide.currentTime = 0;
-    soundEffectCollide.play()
-}
-
-/*Tạo âm giới thiệu game*/
-function getSoundEffectIntroduce() {
-    soundEffectIntroduce.pause();
-    soundEffectIntroduce.currentTime = 0;
-    soundEffectIntroduce.play()
 }
 
 /*Tạo kết quả khi banh đụng tường*/
