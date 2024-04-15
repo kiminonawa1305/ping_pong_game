@@ -47,7 +47,7 @@ nav {
   list-style: none;
   padding: 0;
 
-  & ul {
+  ul {
     list-style: none;
     height: 0;
     overflow-y: hidden;
@@ -70,7 +70,7 @@ nav {
   box-shadow: 5px 5px 5px 2px rgba(91, 66, 243, 0.3);
   transition: 500ms;
 
-  & .title {
+  .title {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -87,7 +87,7 @@ nav {
   &:hover {
     transform: translateY(-10px) scale(1.1);
 
-    & .title {
+    .title {
       background: none;
     }
   }
@@ -95,26 +95,26 @@ nav {
 
 .drop-down {
   &:hover {
-    & ul {
+    ul {
       padding-top: 15px;
       padding-bottom: 5px;
       height: 250px;
     }
 
-    & .icon {
+    .icon {
       transform: rotate(360deg);
     }
 
-    & .button {
+    .button {
       transform: translateY(-10px) scale(1.1);
     }
 
-    & .title {
+    .title {
       background: none;
     }
   }
 
-  & ul {
+  ul {
     background: #03d7fc;
     margin-top: -10px;
     border-radius: 0 0 10px 10px;
@@ -122,7 +122,7 @@ nav {
 
   }
 
-  & li {
+  li {
     margin-top: 0;
     cursor: pointer;
     padding: 10px;
@@ -133,7 +133,7 @@ nav {
     }
   }
 
-  & .icon {
+  .icon {
     transform: rotate(180deg);
     transition: 500ms;
   }
@@ -150,11 +150,11 @@ main {
   gap: 50px;
   align-items: center;
 
-  & #board_game {
+  #board_game {
     z-index: 2;
   }
 
-  & .right-menu {
+  .right-menu {
     transform: translateX(-130%);
     transition: 500ms;
     z-index: 1;
@@ -172,16 +172,16 @@ main {
   justify-content: center;
   align-items: center;
 
-  & {
-    .score {
-      font-size: 35px;
-      color: white;
-      transition: 250ms;
-    }
+
+  .score {
+    font-size: 35px;
+    color: white;
+    transition: 250ms;
   }
+
 }
 
-.display-score.display-level{
+.display-score.display-level {
   height: 50px;
   font-size: 35px;
   color: white;
@@ -226,19 +226,24 @@ main {
   padding-inline: 10%;
   text-align: justify;
 
-  & .container {
+  .container {
     background-color: #281140;
     border-radius: 50px;
     padding: 20px;
   }
 
-  & h1,
-  & h3 {
+  h1,
+  h3 {
     text-align: center;
+  }
+
+  .list-item .item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
   }
 }
 
 canvas, #board_game {
   border-radius: 15px;
 }
-

@@ -106,7 +106,7 @@ $(document).ready(() => {
     });
 
     $(".next-game").on("click", function (event) {
-        if (level <= 6) {
+        if (level < 6) {
             level++
             newGame();
             clearDataGame();
@@ -114,8 +114,14 @@ $(document).ready(() => {
             $(".main-menu").css({'transform': 'translateX(100%)'});
             $("main").css({'transform': 'translateX(0%)'});
             $(".right-menu").css({'transform': 'translateX(0%)'});
-        }
-    })
+        }else
+            quitGame()
+
+        if (level === 6)
+            $(this).find("span").text("Quit Game")
+        else
+            $(this).find("span").text("Next level")
+    });
 
     $('.introduce-game').on('click', function (event) {
         playSoundEffectBackground(SOUND.SOUND_EFFECT_OPEN_GAME, SOUND.SOUND_EFFECT_INTRODUCE)
@@ -239,6 +245,11 @@ const createBroadGame = () => {
 
     contentCanvas = canvas[0].getContext("2d");
 
+    if (level === 6)
+        $('.next-game').find("span").text("Quit Game")
+    else
+        $('.next-game').find("span").text("Next level")
+
     let pointMousePrevious = 0;
     /*event move bar and start game*/
     canvas.mousedown(function (event) {
@@ -281,7 +292,7 @@ const createBroadGame = () => {
                 break;
         }
 
-        moveBar(bar, bar.x + bar.width / 2 + step, screenWidth, contentCanvas);
+        moveBar(bar, bar.x + bar.width / 2 + step * upSpeed * reverse, screenWidth, contentCanvas);
     })
 
     canvas.mouseup(event => {
@@ -375,7 +386,10 @@ const playGame = () => {
     for (const index in listBall) {
         if (listObstacle.length === 0) {
             playSoundEffect(SOUND.SOUND_EFFECT_WIN)
-            if (confirm(`Chúc mừng bạn đã chiến thắng level ${level}\nNhấn "OK" để tiếp tục chơi level ${++level}`)) {
+            if (level === 6) {
+                alert(`Chúc mừng bạn đã chiến thắng trò chơi!`)
+                quitGame()
+            } else if (confirm(`Chúc mừng bạn đã chiến thắng level ${level}\nNhấn "OK" để tiếp tục chơi level ${++level}`)) {
                 createBroadGame()
                 newGame();
             } else {
@@ -426,7 +440,6 @@ const playGame = () => {
             newGame();
             setScore(score);
         } else quitGame();
-
     }
 }
 
@@ -900,7 +913,7 @@ class Obstacle extends Rectangle {
     }
 
     getItem() {
-        if (Math.random() <= 1) return new Item(this.x, this.y, this.width, this.height);
+        if (Math.random() <= 0.2) return new Item(this.x, this.y, this.width, this.height);
     }
 }
 
@@ -910,11 +923,11 @@ class Item extends Rectangle {
         super(x, y, width, height);
         const indexReward = Math.floor(Math.random() * REWARD.length);
         this.setReward(REWARD[indexReward])
-        this.setColor(this.reward.color)
     }
 
     setReward(reward) {
         this.reward = reward;
+        this.setColor(this.reward.color)
     }
 
     draw = (contentCanvas) => {
@@ -970,7 +983,7 @@ class RewardX2 extends Reward {
         let ball;
         const count = listBall.length * 2;
         for (let i = 0; i < count; i++) {
-            ball = new Circle(ballX, ballY - ballSize, ballSize);
+            ball = new Circle(bar.x + bar.width / 2, ballY - ballSize, ballSize);
             ball.draw(contentCanvas);
             listBall.push(ball);
         }
@@ -1050,7 +1063,7 @@ class RewardIncrease5 extends Reward {
 class RewardReverse extends Reward {
 
     constructor() {
-        super(" ⮂ ");
+        super("⮂ ");
         this.color = "#bbf400"
     }
 
@@ -1075,6 +1088,7 @@ class RewardReverse extends Reward {
         }, 2000);
     }
 }
+
 class RewardUpSeed extends Reward {
 
     constructor() {
@@ -1105,7 +1119,7 @@ class RewardUpSeed extends Reward {
 }
 
 
-const REWARD = [new RewardX2(), new RewardDivide2(), new RewardIncrease5(), new RewardDecrease5(), new RewardReverse(),new RewardUpSeed()];
+const REWARD = [new RewardX2(), new RewardDivide2(), new RewardIncrease5(), new RewardDecrease5(), new RewardReverse(), new RewardUpSeed()];
 
 /*Tạo sự kiện theo level 1*/
 const level1 = (listObstacle, contentCanvas) => {
