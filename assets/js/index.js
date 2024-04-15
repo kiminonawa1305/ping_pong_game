@@ -5,44 +5,59 @@
 * Phone number: 0855354919
 */
 
-const screenWidth = /*(window.innerWidth - 18)*/ 750;
-const screenHeight = window.innerHeight - 18;
+/*Tạo kết quả khi banh đụng tường*/
+const TouchDirection = {"EAST": 1, "WEST": 2, "SOUTH": 3, "NORTH": 4, "NONE": 0, "REMOVE": -1}
 
-let soundEffectCollide, soundEffectIntroduce, soundEffectOpenGame, soundEffectPlayGame, soundEffectEatItem,
-    soundEffectHover, soundEffectCLick, soundEffectWin, soundEffectLose;
-
-let canvas;
-let contentCanvas;
-
-const speed = 10;
-
-const barWidth = 150, barHeight = 10, spaseBarCompareToScreen = 50, barX = screenWidth / 2 - barWidth / 2,
-    barY = screenHeight - barHeight - spaseBarCompareToScreen, ballSize = 10;
-
-const ballX = barX + barWidth / 2, ballY = barY;
-
-let isMoveBar = false;
-let start = true;
-let level = 1;
-let run;
-let listBall = [];
-let listObstacle = [];
-let listItem = [];
+/* Bộ màu sắc*/
 const colors = ["#e11919", "#0b4689", "#000", "#036a0c", "#ab02b5", "#5b014a"];
-let bar;
-let score = 0;
-let pause = false;
-const rows = 5;
-let REWARD
-let displayIntroduce = false;
-$(document).ready(() => {
-    createSoundEffect();
-    const buttonContinueGame = $('.continue-game')
-    REWARD = [new RewardX2(), new RewardIncrease5(), new RewardDecrease5(), new RewardDivide2()];
 
+/* Biến quản lý kích thước khung trò chơi (khung canvas)*/
+const screenWidth = 777.5, screenHeight = window.innerHeight - 18;
+/* Biến tương tác canvas*/
+let canvas, contentCanvas;
+
+/* Biến các âm thanh*/
+const SOUND = {
+    'SOUND_EFFECT_COLLIDE': 0,
+    'SOUND_EFFECT_INTRODUCE': 1,
+    'SOUND_EFFECT_OPEN_GAME': 2,
+    'SOUND_EFFECT_PLAY_GAME': 3,
+    'SOUND_EFFECT_EAT_ITEM': 4,
+    'SOUND_EFFECT_HOVER': 5,
+    'SOUND_EFFECT_CLICK': 6,
+    'SOUND_EFFECT_WIN': 7,
+    'SOUND_EFFECT_LOSE': 8
+};
+
+/* Biến tạo 2 tường cho level 6*/
+let wallLeft, wallRight;
+
+/* Các biến liên quan đến thanh bar*/
+const barWidth = 150, barHeight = 10, spaseBarCompareToScreen = 50, barX = screenWidth / 2 - barWidth / 2,
+    barY = screenHeight - barHeight - spaseBarCompareToScreen;
+let bar;
+
+/* Các biến liên quan đến quả banh (ball)*/
+const ballX = barX + barWidth / 2, ballY = barY, ballSize = 10;
+
+/* Các biến liên quan đến thông số game*/
+const rows = 5, speed = 8;
+let score = 0;
+
+/* Các biến liên quan đến trạng thái của game và các element*/
+let isMoveBar = false, run = false, pause = false, level = 1, start = true,
+    displayIntroduce = false, reverse = 1, upSpeed = 1;
+
+/* Các biến danh sách các element*/
+let listBall = [], listObstacle = [], listItem = [], listStone = [];
+
+$(document).ready(() => {
+    const buttonContinueGame = $('.continue-game');
+    const button = $('.button');
+    const menuItem = $(".menu-item");
 
     $('.new-game').on("click", function () {
-        makeSoundEffectBackground(soundEffectOpenGame, soundEffectPlayGame)
+        playSoundEffectBackground(SOUND.SOUND_EFFECT_OPEN_GAME, SOUND.SOUND_EFFECT_PLAY_GAME)
         clearDataGame();
         level = 1
         score = 0;
@@ -62,7 +77,7 @@ $(document).ready(() => {
             quitGame();
             saveDataGame()
             buttonContinueGame.show()
-            makeSoundEffectBackground(soundEffectPlayGame, soundEffectOpenGame)
+            playSoundEffectBackground(SOUND.SOUND_EFFECT_PLAY_GAME, SOUND.SOUND_EFFECT_OPEN_GAME)
         } else if (!start) {
             setUpFrameCountDown();
             countDown();
@@ -87,7 +102,7 @@ $(document).ready(() => {
         $(".main-menu").css({'transform': 'translateX(100%)'});
         $("main").css({'transform': 'translateX(0%)'});
         $(".right-menu").css({'transform': 'translateX(0%)'});
-        makeSoundEffectBackground(soundEffectOpenGame, soundEffectPlayGame)
+        playSoundEffectBackground(SOUND.SOUND_EFFECT_OPEN_GAME, SOUND.SOUND_EFFECT_PLAY_GAME)
     });
 
     $(".next-game").on("click", function (event) {
@@ -103,46 +118,42 @@ $(document).ready(() => {
     })
 
     $('.introduce-game').on('click', function (event) {
-        makeSoundEffectBackground(soundEffectOpenGame, soundEffectIntroduce)
+        playSoundEffectBackground(SOUND.SOUND_EFFECT_OPEN_GAME, SOUND.SOUND_EFFECT_INTRODUCE)
         $("#introduce").css({"transition": "30s linear", "transform": "translateY(-200%)"})
         displayIntroduce = true;
         setTimeout(() => {
             $("#introduce").css({"transition": "0ms linear", "transform": "translateY(0%)"})
-            makeSoundEffectBackground(soundEffectIntroduce, soundEffectOpenGame)
+            playSoundEffectBackground(SOUND.SOUND_EFFECT_INTRODUCE, SOUND.SOUND_EFFECT_OPEN_GAME)
             displayIntroduce = false;
         }, 30 * 1000)
     });
-
 
     if (!localStorage.getItem("bar")) buttonContinueGame.hide()
     buttonContinueGame.on("click", function (event) {
         loadDataGame()
         clearDataGame()
         continueGame()
-        makeSoundEffectBackground(soundEffectOpenGame, soundEffectPlayGame)
+        playSoundEffectBackground(SOUND.SOUND_EFFECT_OPEN_GAME, SOUND.SOUND_EFFECT_PLAY_GAME)
     })
 
-    soundEffectOpenGame.addEventListener("canplay", () => {
-        soundEffectOpenGame.play()
+    $("#sound_effect_open_game")[0].addEventListener("canplay", function () {
+        this.play()
     })
 
-
-    const button = $('.button');
-    const menuItem = $(".menu-item")
     button.on("mouseover", function (event) {
-        makeSoundEffectCanReplace(soundEffectHover)
+        playSoundEffect(SOUND.SOUND_EFFECT_HOVER)
     })
 
     button.on("mousedown", function (event) {
-        makeSoundEffectCanReplace(soundEffectCLick)
+        playSoundEffect(SOUND.SOUND_EFFECT_CLICK)
     })
 
     menuItem.on("mouseover", function (event) {
-        makeSoundEffectCanReplace(soundEffectHover)
+        playSoundEffect(SOUND.SOUND_EFFECT_HOVER)
     })
 
     menuItem.on("mousedown", function (event) {
-        makeSoundEffectCanReplace(soundEffectCLick)
+        playSoundEffect(SOUND.SOUND_EFFECT_CLICK)
     })
 });
 
@@ -157,7 +168,7 @@ $(document).on("keydown", function (event) {
                     countDown();
                 } else {
                     quitGame();
-                    makeSoundEffectBackground(soundEffectPlayGame, soundEffectOpenGame)
+                    playSoundEffectBackground(SOUND.SOUND_EFFECT_PLAY_GAME, SOUND.SOUND_EFFECT_OPEN_GAME)
                 }
             }
             break;
@@ -170,32 +181,46 @@ $("body").on("click", function (event) {
     if (displayIntroduce && $(event.target).parents(".introduce-game")[0] !== $('.introduce-game')[0]) {
         $("#introduce").css({"transition": "0ms linear", "transform": "translateY(0%)"})
         displayIntroduce = false;
-        soundEffectIntroduce.pause();
-        makeSoundEffectBackground(soundEffectIntroduce, soundEffectOpenGame)
+        $("#sound_effect_introduce")[0].pause();
+        playSoundEffectBackground(SOUND.SOUND_EFFECT_INTRODUCE, SOUND.SOUND_EFFECT_OPEN_GAME)
     }
 });
 
-const createSoundEffect = () => {
-    soundEffectCollide = $('#sound_effect_collide')[0];
-    soundEffectIntroduce = $("#sound_effect_introduce")[0];
-    soundEffectPlayGame = $("#sound_effect_play_game")[0];
-    soundEffectOpenGame = $("#sound_effect_open_game")[0];
-    soundEffectEatItem = $("#sound_effect_eat_item")[0];
-    soundEffectCLick = $("#sound_effect_click")[0];
-    soundEffectHover = $("#sound_effect_hover")[0];
-    soundEffectWin = $("#sound_effect_win_game")[0];
-    soundEffectLose = $("#sound_effect_lose_game")[0];
+/*khởi tạo */
+const createSoundEffect = (name) => {
+    switch (name) {
+        case SOUND.SOUND_EFFECT_COLLIDE:
+            return $('#sound_effect_collide')[0];
+        case SOUND.SOUND_EFFECT_INTRODUCE:
+            return $("#sound_effect_introduce")[0];
+        case SOUND.SOUND_EFFECT_PLAY_GAME:
+            return $("#sound_effect_play_game")[0];
+        case SOUND.SOUND_EFFECT_OPEN_GAME:
+            return $("#sound_effect_open_game")[0];
+        case SOUND.SOUND_EFFECT_EAT_ITEM:
+            return $("#sound_effect_eat_item")[0];
+        case SOUND.SOUND_EFFECT_CLICK:
+            return $("#sound_effect_click")[0];
+        case SOUND.SOUND_EFFECT_HOVER:
+            return $("#sound_effect_hover")[0];
+        case SOUND.SOUND_EFFECT_WIN:
+            return $("#sound_effect_win_game")[0];
+        case SOUND.SOUND_EFFECT_LOSE:
+            return $("#sound_effect_lose_game")[0];
+    }
 }
 
 /*Tạo âm thanh nèn cho trò chơi lúc mới mở game*/
-function makeSoundEffectBackground(soundCurrent, soundWillMake) {
+function playSoundEffectBackground(nameSoundCurrent, nameSoundPlay) {
+    const soundCurrent = createSoundEffect(nameSoundCurrent);
+    const soundPlay = createSoundEffect(nameSoundPlay);
     soundCurrent.pause()
-    soundWillMake.currentTime = 0;
-    soundWillMake.play()
-
+    soundPlay.currentTime = 0;
+    soundPlay.play()
 }
 
-const makeSoundEffectCanReplace = (sound) => {
+const playSoundEffect = (nameSound) => {
+    const sound = createSoundEffect(nameSound);
     sound.pause();
     sound.currentTime = 0;
     sound.addEventListener('canplay', function () {
@@ -214,20 +239,50 @@ const createBroadGame = () => {
 
     contentCanvas = canvas[0].getContext("2d");
 
+    let pointMousePrevious = 0;
     /*event move bar and start game*/
-    canvas.mousedown(event => {
+    canvas.mousedown(function (event) {
         isMoveBar = true;
+        pointMousePrevious = event.clientX - this.getBoundingClientRect().x;
         if (start) {
             start = false;
             setUpFrameCountDown();
             countDown();
         }
 
-        if (pause) {
+        if (!start && pause) {
             pause = false;
             countDown();
         }
     });
+
+    $(document).on("keydown", function (event) {
+        if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return
+
+        if (start) {
+            start = false;
+            setUpFrameCountDown();
+            countDown();
+        }
+
+        if (!start && pause) {
+            pause = false;
+            countDown();
+        }
+
+        if (!run || pause) return
+        let step = 0;
+        switch (event.key) {
+            case "ArrowRight":
+                step = 15
+                break;
+            case "ArrowLeft":
+                step = -15
+                break;
+        }
+
+        moveBar(bar, bar.x + bar.width / 2 + step, screenWidth, contentCanvas);
+    })
 
     canvas.mouseup(event => {
         isMoveBar = false;
@@ -235,9 +290,11 @@ const createBroadGame = () => {
 
     canvas.mousemove(function (event) {
         const elementX = this.getBoundingClientRect().x;
+        let pointMouseCurrent = event.clientX - elementX;
         if (isMoveBar && run) {
-            moveBar(bar, event.clientX - elementX, screenWidth, contentCanvas);
+            moveBar(bar, bar.x + bar.width / 2 + reverse * upSpeed * (pointMouseCurrent - pointMousePrevious), screenWidth, contentCanvas);
         }
+        pointMousePrevious = pointMouseCurrent;
     });
 }
 
@@ -260,6 +317,7 @@ const countDown = () => {
         pause = false;
         run = true;
         playGame();
+        moveWall(-1)
     }, 3000);
 }
 
@@ -290,23 +348,24 @@ const setScore = (score) => {
 
 /*Sự kiện tạo mới game*/
 const newGame = () => {
+    start = true;
     run = false;
     pause = false;
-    start = true;
 
     createBroadGame();
 
     listBall = [];
     listObstacle = []
     listItem = [];
+    listStone = [];
     bar = new Rectangle(barX, barY, barWidth, barHeight);
     const ball = new Circle(ballX, ballY - ballSize, ballSize);
     ball.draw(contentCanvas);
     listBall.push(ball);
 
-    listObstacle.push(bar);
+    listStone.push(bar);
     bar.draw(contentCanvas);
-
+    $('.level').text(level)
     drawObstacleByLevel(level, listObstacle, contentCanvas);
 }
 
@@ -314,14 +373,14 @@ const newGame = () => {
 const playGame = () => {
     let newListBall = listBall;
     for (const index in listBall) {
-        if (listObstacle.length === 1) {
-            makeSoundEffectCanReplace(soundEffectWin)
+        if (listObstacle.length === 0) {
+            playSoundEffect(SOUND.SOUND_EFFECT_WIN)
             if (confirm(`Chúc mừng bạn đã chiến thắng level ${level}\nNhấn "OK" để tiếp tục chơi level ${++level}`)) {
                 createBroadGame()
                 newGame();
             } else {
                 quitGame()
-                makeSoundEffectBackground(soundEffectPlayGame, soundEffectOpenGame)
+                playSoundEffectBackground(SOUND.SOUND_EFFECT_PLAY_GAME, SOUND.SOUND_EFFECT_OPEN_GAME)
             }
             return;
         }
@@ -332,54 +391,48 @@ const playGame = () => {
         let dy = ball.dy;
         /*Xử lý va chạm tường*/
         while ((huong = checkCollide(listBall, ball, listObstacle, screenWidth, screenHeight, level)) !== TouchDirection.NONE) {
-            if (level === 4) ball.setColor(colors[Math.floor(Math.random() * colors.length)]);
-
             if (huong === TouchDirection.WEST || huong === TouchDirection.EAST) {
-                makeSoundEffectCanReplace(soundEffectCollide);
-                const rdPoint = randomAngle(dx, dy, speed);
-                dx = rdPoint[0]
-                dy = rdPoint[1]
-                // dy = Math.random() > 0.5 ? -rdPoint[1] : rdPoint[1]
+                playSoundEffect(SOUND.SOUND_EFFECT_COLLIDE);
+                const randomDxy = randomAngle(speed);
+                dx = dx > 0 ? -randomDxy[0] : randomDxy[0]
+                dy = dy > 0 ? randomDxy[1] : -randomDxy[1]
                 ball.setDxy(dx, dy);
             }
 
             if (huong === TouchDirection.SOUTH || huong === TouchDirection.NORTH) {
-                makeSoundEffectCanReplace(soundEffectCollide);
-                const rdPoint = randomAngle(dy, dx, speed);
-                dy = rdPoint[0]
-                dx = rdPoint[1]
-                // dx = Math.random() > 0.5 ? -rdPoint[1] : rdPoint[1]
+                playSoundEffect(SOUND.SOUND_EFFECT_COLLIDE);
+                const randomDxy = randomAngle(speed);
+                dy = dy > 0 ? -randomDxy[0] : randomDxy[0]
+                dx = dx > 0 ? randomDxy[1] : -randomDxy[1]
                 ball.setDxy(dx, dy);
             }
         }
 
         if (ball.y - ball.radius > screenHeight) removeElement(newListBall, index)
     }
-
     drawElements(listBall, listItem, contentCanvas);
-
     listBall = newListBall;
+
     bar.draw(contentCanvas);
 
     if (!pause && run && listBall.length !== 0) requestAnimationFrame(playGame);
 
     if (listBall.length === 0) {
-        makeSoundEffectCanReplace(soundEffectLose)
+        playSoundEffect(SOUND.SOUND_EFFECT_LOSE)
         if (confirm("Thua mất rồi!\nBạn có muốn chơi lại không?")) {
             level = 1;
             score = 0;
             createBroadGame()
             newGame();
             setScore(score);
-        } else {
-            quitGame();
-        }
+        } else quitGame();
+
     }
 }
 
 /*Sự kiện cho nút "Quit Game"*/
 const quitGame = () => {
-    start = true;
+    start = false
     run = false;
     pause = false;
     $(".right-menu").css({'transform': 'translateX(-120%)'});
@@ -391,7 +444,9 @@ const quitGame = () => {
 
 /*Sự kiện cho nút  "Continute Game"*/
 const continueGame = () => {
+    start = true
     setScore(score)
+    $('.level').text(level)
     $('.continue-game').hide()
     createBroadGame()
 
@@ -423,7 +478,6 @@ const clearDataGame = () => {
     localStorage.removeItem("obstacle", listObstacle)
     localStorage.removeItem("score", score)
     $('.continue-game').hide()
-
 }
 
 /*Lưu dữ liệu xuống local*/
@@ -501,42 +555,52 @@ function checkCollide(listBall, ball, listObstacle, screenWidth, screenHeight, l
     const dy = ball.dy;
     const isCollideWall = collideWall(ball, screenWidth, screenHeight);
     if (isCollideWall === TouchDirection.SOUTH) return TouchDirection.NONE
-    if (isCollideWall !== TouchDirection.NONE) return isCollideWall;
+    if (isCollideWall !== TouchDirection.NONE) {
+        if (level >= 4) ball.setColor(colors[Math.floor(Math.random() * colors.length)])
+        return isCollideWall;
+    }
     let result = TouchDirection.NONE;
+    for (let index in listStone) {
+        result = listStone[index].collide(ball, dx, dy);
+        if (result !== TouchDirection.NONE) {
+            if (level >= 4) ball.setColor(colors[Math.floor(Math.random() * colors.length)])
+            return result
+        }
+    }
+
     for (let index = 0; index < listObstacle.length; index++) {
         result = listObstacle[index].collide(ball, dx, dy);
 
         if (result === TouchDirection.NONE) continue;
+        score += 10 * level;
+        setScore(score);
+        const obstacle = listObstacle[index];
+        if (!isNaN(obstacle.blood)) {
+            if (level === 3)
+                obstacle.setBlood(obstacle.blood - 1)
+            if (level >= 4 && ball.color === obstacle.color)
+                obstacle.setBlood(obstacle.blood)
 
-        if (level >= 4 && listObstacle[index].color !== ball.color) {
-            ball.setColor(colors[Math.floor(Math.random() * colors.length)]);
-            return result;
+            obstacle.drawBlood(contentCanvas);
         }
 
-        if (listObstacle[index] instanceof Obstacle) {
-            score += 10 * level;
-            setScore(score);
-            const obstacle = listObstacle[index];
-            if (level === 3) listObstacle[index].setBlood(obstacle.blood - 1)
+
+        if ((level >= 4 && ball.color === obstacle.color) || level < 4)
             if (isNaN(obstacle.blood) || obstacle.blood === 0) {
                 const item = obstacle.getItem();
                 if (item) listItem.push(item)
                 obstacle.drawXY(-100000, -100000, contentCanvas);
-                listObstacle = removeElement(listObstacle, index);
+                removeElement(listObstacle, index)
                 return result;
             }
 
-            if (obstacle.blood > 0) {
-                obstacle.drawBlood(contentCanvas);
-            }
-        }
-
-
+        if (level >= 4) ball.setColor(colors[Math.floor(Math.random() * colors.length)])
         return result;
     }
 
     return TouchDirection.NONE
 }
+
 
 /*Tính khoảng cách từ chái banh đến điểm chạm từ dưới lên trêni*/
 function distanceCollideNorth(ball, collidePoint) {
@@ -593,18 +657,11 @@ function collideEastObstacle(ball, bar) {
 }
 
 /*Thay đổi góc bay*/
-function randomAngle(inverseNumber, affect, speed) {
-    let rdInverseNumber = inverseNumber;
-    while (Math.abs(rdInverseNumber) === Math.abs(inverseNumber)) {
-        rdInverseNumber = Math.floor(Math.random() * speed) + 1;
-    }
-
-    rdInverseNumber = rdInverseNumber === 0 ? 1 : rdInverseNumber > speed ? speed : rdInverseNumber;
-
-    inverseNumber = inverseNumber > 0 ? -rdInverseNumber : rdInverseNumber;
-    affect = affect > 0 ? speed - rdInverseNumber : rdInverseNumber - speed
-
-    return [inverseNumber, affect];
+function randomAngle(speed) {
+    let angle = Math.floor(Math.random() * 90) + 1;
+    const dx = Math.cos(angle * Math.PI / 180) * speed
+    const dy = Math.sin(angle * Math.PI / 180) * speed
+    return [dx, dy];
 }
 
 /*Sự kiện duy chuyển thanh bar*/
@@ -639,7 +696,7 @@ function drawElements(listBall, listItem, contentCanvas) {
     listItem.map((item, index) => {
         item.drop(contentCanvas);
         if (item.collide()) {
-            makeSoundEffectCanReplace(soundEffectEatItem);
+            playSoundEffect(SOUND.SOUND_EFFECT_EAT_ITEM);
             item.reward.action()
             item.drawXY(-1000, -1000, contentCanvas);
             newListItem = removeElement(newListItem, index)
@@ -664,10 +721,10 @@ const createArrayObstacleWithRows = (listObs, rows) => {
     const columns = Math.floor(screenWidth / obstacleWidth);
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < columns; col++) {
-            const y = row * obstacleHeight;
-            const x = col * obstacleWidth;
+            const y = row * obstacleHeight + 2.5 * (row + 1);
+            const x = col * obstacleWidth + 2.5 * (col + 1);
             const obs = new Obstacle(x, y, obstacleWidth, obstacleHeight);
-            listObs[(row * columns) + col + 1] = obs;
+            listObs.push(obs);
         }
     }
 }
@@ -684,9 +741,8 @@ const drawObstacle = (listObs, contentCanvas) => {
 /*Khởi tạo class hình tròn*/
 class Circle {
     constructor(x, y, radius) {
-        const rndPoint = randomAngle(speed, speed, speed);
-        const dx = Math.random() > 0.5 ? -rndPoint[0] : rndPoint[0], dy = -rndPoint[1];
-        this.setDxy(dx, dy);
+        const rndPoint = randomAngle(speed);
+        this.setDxy(Math.random() <= 0.5 ? rndPoint[0] : -rndPoint[0], -rndPoint[1]);
         this.setPoint(x, y);
         this.radius = radius;
         this.setColor(undefined);
@@ -707,9 +763,7 @@ class Circle {
     }
 
     clearDraw(contentCanvas) {
-        contentCanvas.beginPath();
-        contentCanvas.clearRect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
-        contentCanvas.closePath();
+        contentCanvas.clearRect(this.x - this.radius - 0.5, this.y - this.radius - 0.5, this.radius * 2 + 1, this.radius * 2 + 1);
     }
 
     setColor(color) {
@@ -776,6 +830,7 @@ class Obstacle extends Rectangle {
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.setColor("#0b4689")
+        this.border = 15
     }
 
     setBlood(blood) {
@@ -785,7 +840,9 @@ class Obstacle extends Rectangle {
 
     collide(ball, dx, dy) {
         const result = super.collide(ball, dx, dy);
-        if (result !== TouchDirection.NONE && this.color === ball.color && this.blood !== 0) {
+        if (result === TouchDirection.NONE) return result
+
+        if (this.color === ball.color && this.blood !== 0) {
             this.blood--;
         }
 
@@ -793,8 +850,32 @@ class Obstacle extends Rectangle {
     }
 
     draw = (contentCanvas) => {
-        super.draw(contentCanvas);
+        contentCanvas.fillStyle = this.color
         contentCanvas.beginPath();
+        contentCanvas.arc(this.x + this.border, this.y + this.border, this.border, 0, Math.PI * 2);
+        contentCanvas.fill();
+        contentCanvas.closePath()
+        contentCanvas.beginPath();
+        contentCanvas.arc(this.x + this.width - this.border, this.y + this.border, this.border, 0, Math.PI * 2);
+        contentCanvas.fill();
+        contentCanvas.closePath()
+        contentCanvas.beginPath();
+        contentCanvas.arc(this.x + this.border, this.y + this.height - this.border, this.border, 0, Math.PI * 2);
+        contentCanvas.fill();
+        contentCanvas.closePath()
+        contentCanvas.beginPath();
+        contentCanvas.arc(this.x + this.width - this.border, this.y + this.height - this.border, this.border, 0, Math.PI * 2);
+        contentCanvas.fill();
+        contentCanvas.closePath()
+        contentCanvas.beginPath();
+        contentCanvas.rect(this.x, this.y + this.border, this.width, this.height - this.border * 2);
+        contentCanvas.fill();
+        contentCanvas.closePath()
+        contentCanvas.beginPath();
+        contentCanvas.rect(this.x + this.border, this.y, this.width - this.border * 2, this.height);
+        contentCanvas.fill();
+        contentCanvas.closePath()
+        contentCanvas.beginPath()
         contentCanvas.rect(this.x, this.y, this.width, this.height);
         contentCanvas.strokeStyle = "#fff";
         contentCanvas.stroke();
@@ -819,7 +900,7 @@ class Obstacle extends Rectangle {
     }
 
     getItem() {
-        if (Math.random() <= 0.2) return new Item(this.x, this.y, this.width, this.height);
+        if (Math.random() <= 1) return new Item(this.x, this.y, this.width, this.height);
     }
 }
 
@@ -827,9 +908,9 @@ class Obstacle extends Rectangle {
 class Item extends Rectangle {
     constructor(x, y, width, height) {
         super(x, y, width, height);
-        this.setColor("#fde440")
         const indexReward = Math.floor(Math.random() * REWARD.length);
         this.setReward(REWARD[indexReward])
+        this.setColor(this.reward.color)
     }
 
     setReward(reward) {
@@ -854,11 +935,12 @@ class Item extends Rectangle {
 
     /* Vẽ tên phần thưởng */
     drawRewardName(contentCanvas) {
-        const circle = new Circle(this.x + this.width / 2, this.y + this.height / 2, 10);
+        const circle = new Circle(this.x + this.width / 2, this.y + this.height / 2, 12);
         circle.setColor("#fff")
         circle.draw(contentCanvas);
+        contentCanvas.font = "15px serif";
         contentCanvas.fillStyle = "#000"
-        contentCanvas.fillText(this.reward.name, this.x + this.width / 2 - 6, this.y + this.height / 2 + 3);
+        contentCanvas.fillText(this.reward.name, this.x + this.width / 2 - 8, this.y + this.height / 2 + 3, 7000);
     }
 
     /*Kiểm tra va chạm */
@@ -881,6 +963,7 @@ class Reward {
 class RewardX2 extends Reward {
     constructor() {
         super("x2");
+        this.color = "#0df11f"
     }
 
     action() {
@@ -898,6 +981,7 @@ class RewardX2 extends Reward {
 class RewardDivide2 extends Reward {
     constructor() {
         super("÷5");
+        this.color = "#fd0202"
     }
 
     action() {
@@ -923,6 +1007,7 @@ class RewardDecrease5 extends Reward {
 
     constructor() {
         super("-5");
+        this.color = "#de1179"
     }
 
     action() {
@@ -948,6 +1033,7 @@ class RewardIncrease5 extends Reward {
 
     constructor() {
         super("+5");
+        this.color = "#3cf4c3"
     }
 
     action() {
@@ -961,8 +1047,65 @@ class RewardIncrease5 extends Reward {
     }
 }
 
-/*Tạo kết quả khi banh đụng tường*/
-const TouchDirection = {"EAST": 1, "WEST": 2, "SOUTH": 3, "NORTH": 4, "NONE": 0, "REMOVE": -1}
+class RewardReverse extends Reward {
+
+    constructor() {
+        super(" ⮂ ");
+        this.color = "#bbf400"
+    }
+
+    action() {
+        reverse = -1;
+        let interval;
+        setTimeout(() => {
+            reverse = 1
+            clearInterval(interval);
+            interval = null
+        }, 3800)
+
+        setTimeout(() => {
+            let change = true;
+            let color = bar.color;
+            interval = setInterval(() => {
+                if (!change) bar.setColor(color)
+                else bar.setColor("#f89b9b")
+
+                change = !change;
+            }, 200)
+        }, 2000);
+    }
+}
+class RewardUpSeed extends Reward {
+
+    constructor() {
+        super(" ↗ ");
+        this.color = "#e899ff"
+    }
+
+    action() {
+        upSpeed = 3;
+        let interval;
+        setTimeout(() => {
+            upSpeed = 1;
+            clearInterval(interval);
+            interval = null
+        }, 3800)
+
+        setTimeout(() => {
+            let change = true;
+            let color = bar.color;
+            interval = setInterval(() => {
+                if (!change) bar.setColor(color)
+                else bar.setColor("#f89b9b")
+
+                change = !change;
+            }, 200)
+        }, 2000);
+    }
+}
+
+
+const REWARD = [new RewardX2(), new RewardDivide2(), new RewardIncrease5(), new RewardDecrease5(), new RewardReverse(),new RewardUpSeed()];
 
 /*Tạo sự kiện theo level 1*/
 const level1 = (listObstacle, contentCanvas) => {
@@ -1015,6 +1158,31 @@ const level5 = (listObstacle, contentCanvas) => {
     // dropObstacle(listObstacle, contentCanvas);
 }
 
+/*Tạo dự kiện level 5*/
+const level6 = (listObstacle, contentCanvas) => {
+    level5(listObstacle, contentCanvas)
+
+    wallLeft = new Rectangle(0, screenHeight / 2 - 5, screenWidth / 2 - 50, 10)
+    wallRight = new Rectangle(screenWidth / 2 + 50, screenHeight / 2 - 5, screenWidth / 2 - 50, 10)
+    wallLeft.draw(contentCanvas)
+    wallRight.draw(contentCanvas)
+    listStone.push(wallLeft)
+    listStone.push(wallRight)
+}
+
+const moveWall = (dx) => {
+    if (level !== 6) return
+    if (wallLeft.width === 0 || wallLeft.width === screenWidth - 100) dx = -dx
+    wallLeft.width = wallLeft.width - dx;
+    wallLeft.drawXY(wallLeft.x, wallLeft.y, contentCanvas);
+    wallRight.width = wallRight.width + dx;
+    wallRight.drawXY(wallRight.x - dx, wallRight.y, contentCanvas);
+
+    if (run && !pause) requestAnimationFrame(() => {
+        moveWall(dx)
+    })
+}
+
 /*Tọa sự kiện drop*/
 const dropObstacle = (listObstacle, contentCanvas) => {
     setInterval(() => {
@@ -1050,6 +1218,10 @@ const drawObstacleByLevel = (level, listObs, contentCanvas) => {
         }
         case 5: {
             level5(listObs, contentCanvas);
+            break;
+        }
+        case 6: {
+            level6(listObs, contentCanvas);
             break;
         }
     }

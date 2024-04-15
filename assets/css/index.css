@@ -89,7 +89,7 @@ nav {
 .drop-down:hover ul {
   padding-top: 15px;
   padding-bottom: 5px;
-  height: 210px;
+  height: 250px;
 }
 .drop-down:hover .icon {
   transform: rotate(360deg);
@@ -143,7 +143,7 @@ main .right-menu {
 .display-score {
   cursor: text;
   height: 150px;
-  margin-bottom: 50px;
+  margin-bottom: 20px;
   background-image: linear-gradient(144deg, #AF40FF, #5B42F3 50%, #00DDEB);
   border: 0;
   border-radius: 8px;
@@ -152,6 +152,13 @@ main .right-menu {
   align-items: center;
 }
 .display-score .score {
+  font-size: 35px;
+  color: white;
+  transition: 250ms;
+}
+
+.display-score.display-level {
+  height: 50px;
   font-size: 35px;
   color: white;
   transition: 250ms;
@@ -201,6 +208,10 @@ main .right-menu {
 }
 #introduce h1, #introduce h3 {
   text-align: center;
+}
+
+canvas, #board_game {
+  border-radius: 15px;
 }
 
 /*# sourceMappingURL=index.css.map */
