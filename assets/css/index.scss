@@ -218,6 +218,39 @@ main {
   transform: translate(-50%, -50%) scale(0);
 }
 
+.display-notify{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  &-bar{
+    width: 100%;
+    height: 20px;
+    border: 2px solid black;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+
+    span{
+      content: "";
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: -100%;
+      border-radius: 10px;
+      background-color: #00DDEB;
+      transition: 3s linear;
+    }
+  }
+
+  button{
+    padding: 0;
+  }
+}
+
 
 #introduce {
   transform: translateY(0);
@@ -242,6 +275,54 @@ main {
     gap: 10px;
     align-items: center;
   }
+}
+
+.about-us {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: 500ms;
+  padding-inline: 0;
+  font-size: 30px;
+  color: #FFFFFF;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  text-align: justify;
+
+  h1,
+  h3 {
+    text-align: center;
+  }
+
+
+  .container {
+    background-color: #281140;
+    border-radius: 50px;
+    padding: 50px 100px;
+  }
+
+  &-header {
+    display: flex;
+    justify-content: end;
+  }
+
+  &-cancel {
+    cursor: pointer;
+    padding: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    background-color: red;
+    border: none;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
 }
 
 canvas, #board_game {

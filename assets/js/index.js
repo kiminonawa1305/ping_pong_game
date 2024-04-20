@@ -52,6 +52,7 @@ let isMoveBar = false, run = false, pause = false, level = 1, start = true,
 let listBall = [], listObstacle = [], listItem = [], listStone = [];
 
 $(document).ready(() => {
+    loadGame()
     const buttonContinueGame = $('.continue-game');
     const button = $('.button');
     const menuItem = $(".menu-item");
@@ -114,7 +115,7 @@ $(document).ready(() => {
             $(".main-menu").css({'transform': 'translateX(100%)'});
             $("main").css({'transform': 'translateX(0%)'});
             $(".right-menu").css({'transform': 'translateX(0%)'});
-        }else
+        } else
             quitGame()
 
         if (level === 6)
@@ -123,7 +124,7 @@ $(document).ready(() => {
             $(this).find("span").text("Next level")
     });
 
-    $('.introduce-game').on('click', function (event) {
+    $('.introduce-menu-item').on('click', function (event) {
         playSoundEffectBackground(SOUND.SOUND_EFFECT_OPEN_GAME, SOUND.SOUND_EFFECT_INTRODUCE)
         $("#introduce").css({"transition": "30s linear", "transform": "translateY(-200%)"})
         displayIntroduce = true;
@@ -134,16 +135,22 @@ $(document).ready(() => {
         }, 30 * 1000)
     });
 
+    $('.about-us-menu-item').on('click', function (event) {
+        $("#about-us").css({"width": "40%", "height": "700px"})
+    });
+
+    $('.about-us-cancel').on('click', function (event) {
+        playSoundEffect(SOUND.SOUND_EFFECT_CLICK);
+        $("#about-us").css({"width": "0", "height": "0"})
+    });
+
     if (!localStorage.getItem("bar")) buttonContinueGame.hide()
     buttonContinueGame.on("click", function (event) {
+        newGame();
         loadDataGame()
         clearDataGame()
         continueGame()
         playSoundEffectBackground(SOUND.SOUND_EFFECT_OPEN_GAME, SOUND.SOUND_EFFECT_PLAY_GAME)
-    })
-
-    $("#sound_effect_open_game")[0].addEventListener("canplay", function () {
-        this.play()
     })
 
     button.on("mouseover", function (event) {
@@ -184,7 +191,7 @@ $(document).on("keydown", function (event) {
 
 /*Sự kiện hủy chức năng của nut "Introduce"*/
 $("body").on("click", function (event) {
-    if (displayIntroduce && $(event.target).parents(".introduce-game")[0] !== $('.introduce-game')[0]) {
+    if (displayIntroduce && $(event.target).parents(".introduce-menu-item")[0] !== $('.introduce-menu-item')[0]) {
         $("#introduce").css({"transition": "0ms linear", "transform": "translateY(0%)"})
         displayIntroduce = false;
         $("#sound_effect_introduce")[0].pause();
@@ -347,6 +354,40 @@ const setUpFrameCountDown = () => {
     $('body').append(divDisplayCountDown);
 }
 
+/*Khởi tạo lớp phú hiển thị việc count down*/
+const loadGame = () => {
+    const divDisplayCountDown = `
+        <div id="load-game">
+            <div class="background-hidden" style="opacity: 1; background: gray"></div>
+
+             <div class="display-notify" style="display: flex; flex-direction: column; align-items: center">
+                    <img src="./assets/images/header.jpg" alt="header.jpg">
+                    <p class="display-notify-bar">
+                        <span></span>
+                    </p>
+                    <button class="menu-item button hidden-frame-load-game" hidden="">
+                        <div class="title"><span>Tiếp tục</span></div>
+                   </button>
+             </div>
+        </div>
+    `;
+
+    $('body').append(divDisplayCountDown);
+
+    $('.hidden-frame-load-game').click(() => {
+        $("#sound_effect_open_game")[0].play();
+        $("#load-game").remove();
+    })
+
+    setTimeout(() => {
+        $('.display-notify-bar span').css({left: 0});
+
+        setTimeout(() => {
+            $('.hidden-frame-load-game').show();
+        }, 3000)
+    }, 500)
+}
+
 /*Tạo hiệu ứng đếm ngược trước khi bắt đầu chò chơi.*/
 const setScore = (score) => {
     const scoreElement = $(".display-score .score");
@@ -497,6 +538,7 @@ const clearDataGame = () => {
 const saveDataGame = () => {
     localStorage.setItem("items", JSON.stringify(listItem));
     localStorage.setItem("balls", JSON.stringify(listBall));
+    localStorage.setItem("bar", JSON.stringify(bar));
     localStorage.setItem("obstacle", JSON.stringify(listObstacle))
     localStorage.setItem("score", score)
 }
@@ -512,20 +554,19 @@ const loadDataGame = () => {
         ball.setColor(object.color);
         return ball;
     })
+
     listObstacle = JSON.parse(localStorage.getItem('obstacle')).map((object, index, array) => {
-        if (index === 0) {
-            const bar = new Rectangle(object.x, object.y, object.width, object.height);
-            bar.setColor(object.color)
-            return bar;
-        } else {
-            const obstacle = new Obstacle(object.x, object.y, object.width, object.height);
-            obstacle.setBlood(object.blood ? object.blood : undefined);
-            obstacle.setColor(object.color)
-            return obstacle;
-        }
+        const obstacle = new Obstacle(object.x, object.y, object.width, object.height);
+        obstacle.setBlood(object.blood ? object.blood : undefined);
+        obstacle.setColor(object.color)
+        return obstacle;
     })
+
+    const barObject = JSON.parse(localStorage.getItem('bar'));
+    bar = new Rectangle(barObject.x, barObject.y, barObject.width, barObject.height);
+    listStone.push(bar);
+
     score = parseInt(localStorage.getItem("score"))
-    bar = listObstacle[0];
 }
 
 /*Chạm hướng từ dưới lên*/
@@ -573,6 +614,7 @@ function checkCollide(listBall, ball, listObstacle, screenWidth, screenHeight, l
         return isCollideWall;
     }
     let result = TouchDirection.NONE;
+
     for (let index in listStone) {
         result = listStone[index].collide(ball, dx, dy);
         if (result !== TouchDirection.NONE) {
